@@ -1,7 +1,10 @@
 package main
 
-import "fmt"
+import (
+	"Melodex/TUI"
+	// "fmt"
+)
 
 func main() {
-  fmt.Println("Hello World!")
+	TUI.Run()
 }
