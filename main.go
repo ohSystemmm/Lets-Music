@@ -1,7 +1,7 @@
 package main
 
-import "fmt"
+import "Melodex/Backend/Music"
 
 func main() {
-  fmt.Println("Hello World!")
+	Music.TgetMusic()
 }
