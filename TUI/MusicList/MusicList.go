@@ -1,13 +1,12 @@
 package MusicList
 
 import (
-	"Melodex/TUI"
 	"github.com/charmbracelet/bubbles/table"
 	lipg "github.com/charmbracelet/lipgloss"
 )
 
 // MusicList initializes the music list
-func MusicList() TUI.Model {
+func MusicList() Model {
 	rows := []table.Row{
 		{"Song A", "3:40"},
 		{"Song B", "4:20"},
@@ -42,7 +41,7 @@ func MusicList() TUI.Model {
 		tLW += col.Width
 	}
 
-	return TUI.Model{List: t, TotalListWidth: tLW}
+	return Model{List: t, TotalListWidth: tLW}
 }
 
 // defineTableStyles sets the table styles
