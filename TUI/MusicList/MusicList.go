@@ -1,17 +1,22 @@
 package MusicList
 
 import (
-	"Melodex/TUI"
 	"fmt"
-	"os"
-	"strings"
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	lipg "github.com/charmbracelet/lipgloss"
 	bzone "github.com/lrstanley/bubblezone"
+	"os"
+	"strings"
 )
 
 // Defines variables that can be used via model, oftentimes
+type model struct {
+	list           table.Model
+	totalListWidth int
+	width          int
+	height         int
+}
 
 // The List function that defines the properties of the table
 func List() model {
@@ -111,7 +116,7 @@ func Run() {
 	// WHen an Error occurs, exits the program
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("Alas, there's been an error: %v", err)
-		os.Exit(1)
+		os.Exit(0)
 	}
 }
 
