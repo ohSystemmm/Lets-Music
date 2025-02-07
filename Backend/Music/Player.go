@@ -1,66 +1,51 @@
 package Music
 
 import (
+	"bytes"
 	"fmt"
-	"github.com/faiface/beep"
-	"github.com/faiface/beep/speaker"
-	"github.com/faiface/beep/wav"
-	"os"
-	"time"
+	"github.com/hajimehoshi/ebiten/v2/audio"
+	"github.com/hajimehoshi/ebiten/v2/audio/wav"
+	"io/ioutil"
 )
 
-var streamer beep.StreamSeekCloser
-var done chan bool
-var paused bool
+var (
+	player *audio.Player
+	paused bool
+)
 
-func PlaySong(filePath string, sampleRate beep.SampleRate) {
-	file, err := os.Open(filePath)
+func PlaySong(filePath string, audioContext *audio.Context) error {
+	data, err := ioutil.ReadFile(filePath)
 	if err != nil {
-		fmt.Println("Error opening file:", err)
-		return
+		return fmt.Errorf("error reading file: %w", err)
 	}
-	defer file.Close()
 
-	streamer, format, err := wav.Decode(file)
+	stream, err := wav.Decode(audioContext, bytes.NewReader(data))
 	if err != nil {
-		fmt.Println("Error decoding file:", err)
-		return
+		return fmt.Errorf("error decoding file: %w", err)
 	}
-	defer streamer.Close()
 
-	speaker.Init(format.SampleRate, format.SampleRate.N(time.Second/9))
+	player, err = audio.NewPlayer(audioContext, stream)
+	if err != nil {
+		return fmt.Errorf("error creating player: %w", err)
+	}
 
-	fmt.Println("Playing:", filePath)
-	done = make(chan bool)
+	player.Play()
 	paused = false
-	speaker.Play(beep.Seq(streamer, beep.Callback(func() {
-		done <- true
-	})))
 
-	<-done
-	fmt.Println("Finished playing:", filePath)
+	return nil
 }
 
 func PauseSong() {
-	fmt.Println("Pausing/Resuming...")
-	speaker.Lock()
 	if paused {
-		speaker.Play(streamer)
+		player.Play()
 	} else {
-		speaker.Clear()
+		player.Pause()
 	}
 	paused = !paused
-	speaker.Unlock()
 }
 
 func StopSong() {
-	fmt.Println("Stopping...")
-	speaker.Lock()
-	if streamer != nil {
-		streamer.Close()
-	}
-	speaker.Unlock()
-	if done != nil {
-		done <- true
+	if player != nil {
+		player.Close()
 	}
 }
