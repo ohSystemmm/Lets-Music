@@ -5,68 +5,33 @@ import (
 	"github.com/faiface/beep"
 	"github.com/faiface/beep/speaker"
 	"github.com/faiface/beep/wav"
-	"os/exec"
-	"sync"
+	"os"
 	"time"
 )
 
-var (
-	ctrl  *beep.Ctrl
-	mutex sync.Mutex
-)
-
-func playMusic() {
-	mutex.Lock()
-	defer mutex.Unlock()
-
-	cmd := exec.Command("ffmpeg", "-i", "Backend/TestMusic/TestMusic.m4a", "-f", "wav", "pipe:1")
-	ffmpegOut, err := cmd.StdoutPipe()
+func PlaySong(filePath string, sampleRate beep.SampleRate) {
+	file, err := os.Open(filePath)
 	if err != nil {
-		fmt.Println("Could not create ffmpeg output pipe:", err)
+		fmt.Println("Error opening file:", err)
 		return
 	}
+	defer file.Close()
 
-	if err := cmd.Start(); err != nil {
-		fmt.Println("Could not start ffmpeg:", err)
-		return
-	}
-
-	streamer, format, err := wav.Decode(ffmpegOut)
+	streamer, format, err := wav.Decode(file)
 	if err != nil {
-		fmt.Println("Could not decode WAV stream:", err)
+		fmt.Println("Error decoding file:", err)
 		return
 	}
+	defer streamer.Close()
 
-	speaker.Init(format.SampleRate, format.SampleRate.N(time.Second/10))
-	ctrl = &beep.Ctrl{Streamer: streamer, Paused: false}
-	speaker.Play(ctrl)
+	speaker.Init(format.SampleRate, format.SampleRate.N(time.Second/9))
 
-	fmt.Println("Playing music locally...")
-}
+	fmt.Println("Playing:", filePath)
+	done := make(chan bool)
+	speaker.Play(beep.Seq(streamer, beep.Callback(func() {
+		done <- true
+	})))
 
-func pauseMusic() {
-	mutex.Lock()
-	defer mutex.Unlock()
-	if ctrl != nil {
-		ctrl.Paused = !ctrl.Paused
-		state := "paused"
-		if !ctrl.Paused {
-			state = "resumed"
-		}
-		fmt.Printf("Music %s locally\n", state)
-	} else {
-		fmt.Println("No music playing")
-	}
-}
-
-func stopMusic() {
-	mutex.Lock()
-	defer mutex.Unlock()
-	if ctrl != nil {
-		ctrl.Streamer = nil
-		ctrl = nil
-		fmt.Println("Music stopped locally")
-	} else {
-		fmt.Println("No music playing")
-	}
+	<-done
+	fmt.Println("Finished playing:", filePath)
 }
