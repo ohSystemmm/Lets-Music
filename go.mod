@@ -4,10 +4,13 @@ go 1.23.0
 
 require (
 	github.com/faiface/beep v1.1.0
-	github.com/hajimehoshi/oto v1.0.1
+	github.com/hajimehoshi/ebiten/v2 v2.8.6
 )
 
 require (
+	github.com/ebitengine/oto/v3 v3.3.2 // indirect
+	github.com/ebitengine/purego v0.8.2 // indirect
+	github.com/hajimehoshi/oto v1.0.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	golang.org/x/exp/shiny v0.0.0-20250207012021-f9890c6ad9f3 // indirect
 	golang.org/x/image v0.24.0 // indirect
