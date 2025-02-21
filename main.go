@@ -1,10 +1,7 @@
 package main
 
-import (
-	"Melodex/TUI"
-	// "fmt"
-)
+import "Melodex/TUI"
 
 func main() {
-	TUI.Runb()
+	TUI.Run()
 }

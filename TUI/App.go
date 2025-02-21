@@ -1,6 +1,5 @@
 package TUI
 
-/*
 import (
 	"fmt"
 	"os"
@@ -166,4 +165,3 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m model) View() string {
 	return lipgloss.NewStyle().BorderStyle(lipgloss.RoundedBorder()).Render(m.list.View())
 }
-*/

@@ -80,9 +80,9 @@ func (m Model) View() string {
 	header := lipg.NewStyle().BorderStyle(lipg.ThickBorder()).Render(
 		playlistName + strings.Repeat(" ", padding) + staticText)
 
-	funcmenul := lipg.NewStyle().BorderStyle(lipg.ThickBorder()).Render(m.List.View())
-	funcmenum := lipg.NewStyle().BorderStyle(lipg.ThickBorder()).Render(m.List.View())
-	funcmenur := lipg.NewStyle().BorderStyle(lipg.ThickBorder()).Render(m.List.View())
+	musicList := lipg.NewStyle().BorderStyle(lipg.ThickBorder()).Render(m.List.View())
+
+	musicPlayer := lipg.NewStyle().BorderStyle(lipg.ThickBorder()).Render(m.List.View())
 
 	return lipg.JoinHorizontal(lipg.Top, lipg.JoinVertical(lipg.Top, header, musicList), musicPlayer)
 }
