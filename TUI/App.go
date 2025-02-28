@@ -28,10 +28,12 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
+
 		var mList tea.Model
 		mList, cmd = m.MList.Update(msg)
 		m.MList = mList.(MusicList.Model)
 		cmds = append(cmds, cmd)
+
 		var mPlayer tea.Model
 		mPlayer, cmd = m.MPlayer.Update(msg)
 		m.MPlayer = mPlayer.(MusicPlayer.Model)
@@ -41,6 +43,7 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		mList, cmd = m.MList.Update(msg)
 		m.MList = mList.(MusicList.Model)
 		cmds = append(cmds, cmd)
+
 		var mPlayer tea.Model
 		mPlayer, cmd = m.MPlayer.Update(msg)
 		m.MPlayer = mPlayer.(MusicPlayer.Model)
