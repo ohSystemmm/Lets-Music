@@ -2,60 +2,38 @@ package Backend
 
 import (
 	"Melodex/Backend/Music"
-	"bufio"
 	"fmt"
-	"io/ioutil"
+	"github.com/hajimehoshi/oto"
 	"log"
 	"os"
-
-	"github.com/hajimehoshi/ebiten/v2/audio"
 )
 
-func Backend() {
-	songDir := "./Backend/songs"
+func Run() {
+	sourceDir := "./Backend/Music/source_songs"
+	destDir := "./Backend/Music/mp3_songs"
 
-	files, err := ioutil.ReadDir(songDir)
-	if err != nil {
-		log.Fatalf("Error reading directory: %v", err)
-	}
-
-	audioContext := audio.NewContext(44100)
-
-	reader := bufio.NewReader(os.Stdin)
-
-	for _, file := range files {
-		if file.IsDir() {
-			continue
-		}
-
-		filePath := songDir + "/" + file.Name()
-		fmt.Printf("Playing: %s\n", filePath)
-
-		err := Music.PlaySong(filePath, audioContext)
+	if _, err := os.Stat(destDir); os.IsNotExist(err) {
+		err := os.Mkdir(destDir, os.ModePerm)
 		if err != nil {
-			log.Fatalf("Error playing song: %v", err)
-		}
-
-		for {
-			fmt.Println("Enter command (p: pause/resume, s: stop, n: next song):")
-			input, _ := reader.ReadString('\n')
-
-			switch input {
-			case "p\n":
-				Music.PauseSong()
-			case "s\n":
-				Music.StopSong()
-				break
-			case "n\n":
-				Music.StopSong()
-				break
-			default:
-				fmt.Println("Invalid command")
-			}
-
-			if input == "s\n" || input == "n\n" {
-				break
-			}
+			log.Fatalf("Failed to create directory: %v", err)
 		}
 	}
+
+	mp3Files, err := Music.ConvertToMP3(sourceDir, destDir)
+	if err != nil {
+		log.Fatalf("Error converting files: %v", err)
+	}
+
+	if len(mp3Files) == 0 {
+		fmt.Println("No files were converted.")
+		return
+	}
+
+	context, err := oto.NewContext(44100, 2, 2, 65536)
+	if err != nil {
+		log.Fatalf("Failed to create audio context: %v", err)
+	}
+	defer context.Close()
+
+	Music.PlaySongs(mp3Files, context)
 }
