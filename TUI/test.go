@@ -1,8 +1,8 @@
-package MusicList
+package TUI
 
 import (
 	// "strconv"
-	"strings"
+	// "strings"
 
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
@@ -77,14 +77,15 @@ func (m Model) View() string {
 		padding = 0
 	}
 
-	header := lipg.NewStyle().BorderStyle(lipg.ThickBorder()).Render(
-		playlistName + strings.Repeat(" ", padding) + staticText)
+	// header := lipg.NewStyle().BorderStyle(lipg.ThickBorder()).Render(
+	// 	playlistName + strings.Repeat(" ", padding) + staticText)
 
-	funcmenul := lipg.NewStyle().BorderStyle(lipg.ThickBorder()).Render(m.List.View())
-	funcmenum := lipg.NewStyle().BorderStyle(lipg.ThickBorder()).Render(m.List.View())
-	funcmenur := lipg.NewStyle().BorderStyle(lipg.ThickBorder()).Render(m.List.View())
+	// funcmenul := lipg.NewStyle().BorderStyle(lipg.ThickBorder()).Render(m.List.View())
+	// funcmenum := lipg.NewStyle().BorderStyle(lipg.ThickBorder()).Render(m.List.View())
+	// funcmenur := lipg.NewStyle().BorderStyle(lipg.ThickBorder()).Render(m.List.View())
 
-	return lipg.JoinHorizontal(lipg.Top, lipg.JoinVertical(lipg.Top, header, musicList), musicPlayer)
+	// return lipg.JoinHorizontal(lipg.Top, lipg.JoinVertical(lipg.Top, header, musicList), musicPlayer)
+	return ""
 }
 
 // MList initializes the music list
