@@ -2,7 +2,7 @@ package Playlist
 
 const originalPlaylistPath = "$HOME/.local/share/melodex"
 
-func CopyPlaylist()       {} // Copies an existing, defined Playlist to .local/
+func CopyPlaylist()       {} // ~/.local/share
 func UpdatePlaylist()     {}
 func CreatePlaylist()     {}
 func DeletePlaylist()     {}
