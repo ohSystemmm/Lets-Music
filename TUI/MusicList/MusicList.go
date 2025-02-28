@@ -1,7 +1,6 @@
 package MusicList
 
 import (
-	// "strconv"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/table"
@@ -48,18 +47,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Handle selection
 		}
 	case tea.WindowSizeMsg:
+		// This is to handle the window resize
 		m.width, m.height = msg.Width, msg.Height
 		m.List.SetHeight(m.height - 5)
-
 		newColumns := m.List.Columns()
-		availableWidth := m.width - 10
-		titleWidth := int(0.3 * float64(availableWidth))
-		lengthWidth := int(0.1 * float64(titleWidth))
 
-		newColumns[0].Width = titleWidth
-		newColumns[1].Width = lengthWidth
+		// availableWidth := m.width - 10
+		// titleWidth := int(0.3 * float64(availableWidth))
+		// lengthWidth := int(0.2 * float64(titleWidth))
 
-		m.TotalListWidth = titleWidth + lengthWidth
+		// newColumns[0].Width = titleWidth
+		// newColumns[1].Width = lengthWidth
+
+		// m.TotalListWidth = titleWidth + lengthWidth
 		m.List.SetColumns(newColumns)
 
 	}
@@ -82,13 +82,11 @@ func (m Model) View() string {
 
 	musicList := lipg.NewStyle().BorderStyle(lipg.ThickBorder()).Render(m.List.View())
 
-	musicPlayer := lipg.NewStyle().BorderStyle(lipg.ThickBorder()).Render(m.List.View())
-
-	return lipg.JoinHorizontal(lipg.Top, lipg.JoinVertical(lipg.Top, header, musicList), musicPlayer)
+	return lipg.JoinVertical(lipg.Top, header, musicList)
 }
 
-// MList initializes the music list
-func MList(m Model) Model {
+// New initializes the music list
+func New() Model {
 	rows := []table.Row{
 		{"Song A", "3:40"},
 		{"Song B", "4:20"},
@@ -98,7 +96,7 @@ func MList(m Model) Model {
 		{"Song C", "2:50"},
 	}
 
-	longestTitle, longestTime := 20, 6
+	longestTitle, longestTime := 100, 7
 
 	for _, row := range rows {
 		if len(row[0]) > longestTitle {
