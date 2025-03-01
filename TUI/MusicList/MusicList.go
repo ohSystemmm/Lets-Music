@@ -1,20 +1,26 @@
 package MusicList
 
 import (
+	"Melodex/TUI/SharedState"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/table"
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	lipg "github.com/charmbracelet/lipgloss"
 )
 
-// Model struct
 type Model struct {
-	List           table.Model
-	PlayListName   string
+	SharedState *SharedState.SharedState
+
+	List      table.Model
+	SearchBar textinput.Model
+
+	PlaylistName   string
 	TotalListWidth int
-	width          int
-	height         int
+
+	Width  int
+	Height int
 }
 
 // Init implements the tea.Model interface
@@ -29,7 +35,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "ctrl+c", "q":
+		case "ctrl+c":
 			return m, tea.Quit
 		case "up":
 			m.List.MoveUp(1)
@@ -43,13 +49,30 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.List.GotoTop()
 		case "end":
 			m.List.GotoBottom()
-		case "enter":
-			// Handle selection
+		}
+
+		if m.SharedState.Searching {
+			switch msg.String() {
+			case "esc", "enter":
+				m.SharedState.Searching = false
+				m.SearchBar.Blur()
+				// return m, nil
+			}
+		} else {
+			switch msg.String() {
+			case "enter":
+				// Handle selection
+			case "f":
+				m.SharedState.Searching = true
+				return m, m.SearchBar.Focus()
+			case "q":
+				return m, tea.Quit
+			}
 		}
 	case tea.WindowSizeMsg:
 		// This is to handle the window resize
-		m.width, m.height = msg.Width, msg.Height
-		m.List.SetHeight(m.height - 5)
+		m.Width, m.Height = msg.Width, msg.Height
+		m.List.SetHeight(m.Height - 5)
 		newColumns := m.List.Columns()
 
 		// availableWidth := m.width - 10
@@ -63,22 +86,32 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.List.SetColumns(newColumns)
 
 	}
+	m.SearchBar, cmd = m.SearchBar.Update(msg)
 
 	return m, cmd
 }
 
 // View renders the music list
 func (m Model) View() string {
-	playlistName := "PLAYLISTNAME"
-	staticText := " 󰉹 SEARCH  "
+	// FIX Text input fileed from bubbles for search
+	searchBar := m.SearchBar.View()
+	// filtering := " 󰉹 "
+	filtering := " "
+	// filtering := " "
 
-	padding := m.TotalListWidth - lipg.Width(playlistName) - lipg.Width(staticText) + 4
-	if padding < 0 {
-		padding = 0
-	}
+	// filtering := " "
+	// filtering := " "
+
+	// filtering := "󱕉 "
+	// filtering := "󱕋 "
+	// filtering := "󱕊 "
+	// filtering := "󱕌 "
+
+	padding := m.TotalListWidth - lipg.Width(m.PlaylistName) - lipg.Width(filtering) - lipg.Width(searchBar) + 4
+	padding = max(padding, 0)
 
 	header := lipg.NewStyle().BorderStyle(lipg.ThickBorder()).Render(
-		playlistName + strings.Repeat(" ", padding) + staticText)
+		lipg.NewStyle().Bold(true).Render(m.PlaylistName) + strings.Repeat(" ", padding) + filtering + searchBar)
 
 	musicList := lipg.NewStyle().BorderStyle(lipg.ThickBorder()).Render(m.List.View())
 
@@ -86,7 +119,7 @@ func (m Model) View() string {
 }
 
 // New initializes the music list
-func New() Model {
+func New(sharedState *SharedState.SharedState) Model {
 	rows := []table.Row{
 		{"Song A", "3:40"},
 		{"Song B", "4:20"},
@@ -96,15 +129,11 @@ func New() Model {
 		{"Song C", "2:50"},
 	}
 
-	longestTitle, longestTime := 100, 7
+	longestTitle, longestTime := 98, 15
 
 	for _, row := range rows {
-		if len(row[0]) > longestTitle {
-			longestTitle = len(row[0])
-		}
-		if len(row[1]) > longestTime {
-			longestTime = len(row[1])
-		}
+		longestTitle = max(longestTitle, len(row[0]))
+		longestTime = max(longestTime, len(row[1]))
 	}
 
 	columns := []table.Column{
@@ -124,7 +153,21 @@ func New() Model {
 		tLW += col.Width
 	}
 
-	return Model{List: t, TotalListWidth: tLW}
+	sB := textinput.New()
+	sB.Width = 20
+	sB.CharLimit = 0
+	sB.Placeholder = "Search"
+
+	// FIX find a way to somehow seperate the filter and search boxes in their own borders
+	sB.Prompt = " "
+
+	return Model{
+		SharedState:    sharedState,
+		List:           t,
+		TotalListWidth: tLW,
+		PlaylistName:   "Example Playlistname",
+		SearchBar:      sB,
+	}
 }
 
 // defineTableStyles sets the table styles

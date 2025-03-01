@@ -1,20 +1,26 @@
 package TUI
 
 import (
-	"Melodex/TUI/MusicList"
-	"Melodex/TUI/MusicPlayer"
-	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
 	lipg "github.com/charmbracelet/lipgloss"
 	bzone "github.com/lrstanley/bubblezone"
+
+	"Melodex/TUI/MusicList"
+	"Melodex/TUI/MusicPlayer"
+	"Melodex/TUI/SharedState"
+
+	"fmt"
 	"os"
 )
 
 type MainModel struct {
+	SharedState *SharedState.SharedState
+
 	MList   MusicList.Model
 	MPlayer MusicPlayer.Model
-	width   int
-	height  int
+
+	width  int
+	height int
 }
 
 func (m MainModel) Init() tea.Cmd {
@@ -62,9 +68,13 @@ func (m MainModel) View() string {
 }
 
 func Application() {
+	sharedState := SharedState.GetGlobalState()
+
 	mainModel := MainModel{
-		MList:   MusicList.New(),
-		MPlayer: MusicPlayer.New(),
+		SharedState: sharedState,
+
+		MList:   MusicList.New(sharedState),
+		MPlayer: MusicPlayer.New(sharedState),
 	}
 
 	bzone.NewGlobal()
