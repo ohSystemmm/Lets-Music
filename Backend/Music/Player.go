@@ -13,7 +13,7 @@ import (
 	"sync"
 )
 
-type MusicPlayer struct {
+type Player struct {
 	context       *oto.Context
 	commandChan   chan string
 	mu            sync.Mutex
@@ -22,28 +22,38 @@ type MusicPlayer struct {
 	currentFile   *os.File
 	done          chan bool
 	stop          chan bool
+	stopped       bool
+	playlist      []string
+	currentIndex  int
 }
 
-func NewMusicPlayer(context *oto.Context) *MusicPlayer {
-	return &MusicPlayer{
+func NewMusicPlayer(context *oto.Context) *Player {
+	return &Player{
 		context:     context,
 		commandChan: make(chan string),
 	}
 }
 
-func (mp *MusicPlayer) PlaySongs(mp3Files []string) {
+func (mp *Player) PlaySongs(mp3Files []string) {
+	mp.playlist = mp3Files
+	mp.currentIndex = 0
+	mp.stopped = false
 	go mp.listenForCommands()
 
-	for _, file := range mp3Files {
-		mp.playTrack(file)
+	for mp.currentIndex < len(mp3Files) && !mp.stopped {
+		mp.playTrack(mp3Files[mp.currentIndex])
 	}
 
-	fmt.Println("Playback finished.")
+	if !mp.stopped {
+		fmt.Println("Playback finished.")
+	} else {
+		fmt.Println("Playback stopped.")
+	}
 }
 
-func (mp *MusicPlayer) playTrack(file string) {
+func (mp *Player) playTrack(file string) {
 	fmt.Printf("Now playing: %s\n", filepath.Base(file))
-	fmt.Println("Press 'n' and hit Enter to skip to the next song. Press 'p' to pause/resume. Press 's' to stop playback.")
+	fmt.Println("Press 'n' and hit Enter to skip to the next song. Press 'p' to pause/resume. Press 's' to stop playback. Press 'b' to go back to the previous song.")
 
 	f, err := os.Open(file)
 	if err != nil {
@@ -67,7 +77,7 @@ func (mp *MusicPlayer) playTrack(file string) {
 	mp.waitForCommands()
 }
 
-func (mp *MusicPlayer) playAudio(decoder *mp3.Decoder) {
+func (mp *Player) playAudio(decoder *mp3.Decoder) {
 	buf := make([]byte, 4096)
 	for {
 		select {
@@ -102,7 +112,7 @@ func (mp *MusicPlayer) playAudio(decoder *mp3.Decoder) {
 	}
 }
 
-func (mp *MusicPlayer) listenForCommands() {
+func (mp *Player) listenForCommands() {
 	reader := bufio.NewReader(os.Stdin)
 	for {
 		input, err := reader.ReadString('\n')
@@ -115,7 +125,7 @@ func (mp *MusicPlayer) listenForCommands() {
 	}
 }
 
-func (mp *MusicPlayer) waitForCommands() {
+func (mp *Player) waitForCommands() {
 	songFinished := false
 	for !songFinished {
 		select {
@@ -131,14 +141,17 @@ func (mp *MusicPlayer) waitForCommands() {
 			case "s":
 				mp.Stop()
 				songFinished = true
+			case "b":
+				mp.PreviousTrack()
+				songFinished = true
 			default:
-				fmt.Println("Unknown command. Press 'n' to skip, 'p' to pause/resume, 's' to stop.")
+				fmt.Println("Unknown command. Press 'n' to skip, 'p' to pause/resume, 's' to stop, 'b' to go back.")
 			}
 		}
 	}
 }
 
-func (mp *MusicPlayer) PauseTrack() {
+func (mp *Player) PauseTrack() {
 	mp.mu.Lock()
 	defer mp.mu.Unlock()
 	mp.paused = !mp.paused
@@ -149,13 +162,28 @@ func (mp *MusicPlayer) PauseTrack() {
 	}
 }
 
-func (mp *MusicPlayer) NextTrack() {
+func (mp *Player) NextTrack() {
 	mp.stop <- true
 	<-mp.done
+	mp.currentIndex++
+	if mp.currentIndex >= len(mp.playlist) {
+		mp.currentIndex = 0
+	}
 	fmt.Println("Skipping to next track.")
 }
 
-func (mp *MusicPlayer) Stop() {
+func (mp *Player) PreviousTrack() {
+	mp.stop <- true
+	<-mp.done
+	mp.currentIndex--
+	if mp.currentIndex < 0 {
+		mp.currentIndex = len(mp.playlist) - 1
+	}
+	fmt.Println("Going back to previous track.")
+}
+
+func (mp *Player) Stop() {
+	mp.stopped = true
 	mp.stop <- true
 	<-mp.done
 	fmt.Println("Playback stopped.")

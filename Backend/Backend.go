@@ -12,7 +12,7 @@ func Run() {
 	sourceDir := "./Backend/Music/source_songs"
 	destDir := "./Backend/Music/mp3_songs"
 
-	mp3Files, err := Music.GetMusicFiles(sourceDir, destDir)
+	mp3Files, err := Music.ConvertToMP3(sourceDir, destDir)
 	if err != nil {
 		log.Fatalf("Error getting music files: %v", err)
 	}
