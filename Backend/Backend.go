@@ -1,27 +1,20 @@
 package Backend
 
 import (
-	"Melodex/Backend/Music"
 	"fmt"
-	"github.com/hajimehoshi/oto"
 	"log"
-	"os"
+
+	"Melodex/Backend/Music"
+	"github.com/hajimehoshi/oto"
 )
 
 func Run() {
 	sourceDir := "./Backend/Music/source_songs"
 	destDir := "./Backend/Music/mp3_songs"
 
-	if _, err := os.Stat(destDir); os.IsNotExist(err) {
-		err := os.Mkdir(destDir, os.ModePerm)
-		if err != nil {
-			log.Fatalf("Failed to create directory: %v", err)
-		}
-	}
-
-	mp3Files, err := Music.ConvertToMP3(sourceDir, destDir)
+	mp3Files, err := Music.GetMusicFiles(sourceDir, destDir)
 	if err != nil {
-		log.Fatalf("Error converting files: %v", err)
+		log.Fatalf("Error getting music files: %v", err)
 	}
 
 	if len(mp3Files) == 0 {
@@ -35,5 +28,6 @@ func Run() {
 	}
 	defer context.Close()
 
-	Music.PlaySongs(mp3Files, context)
+	musicPlayer := Music.NewMusicPlayer(context)
+	musicPlayer.PlaySongs(mp3Files)
 }

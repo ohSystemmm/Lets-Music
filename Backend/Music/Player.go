@@ -10,93 +10,153 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 )
 
-func PlaySongs(mp3Files []string, context *oto.Context) {
-	commandChan := make(chan string)
+type MusicPlayer struct {
+	context       *oto.Context
+	commandChan   chan string
+	mu            sync.Mutex
+	paused        bool
+	currentPlayer *oto.Player
+	currentFile   *os.File
+	done          chan bool
+	stop          chan bool
+}
 
-	go func() {
-		reader := bufio.NewReader(os.Stdin)
-		for {
-			input, err := reader.ReadString('\n')
-			if err != nil {
-				log.Printf("Error reading input: %v", err)
-				continue
-			}
-			input = strings.TrimSpace(input)
-			commandChan <- input
-		}
-	}()
+func NewMusicPlayer(context *oto.Context) *MusicPlayer {
+	return &MusicPlayer{
+		context:     context,
+		commandChan: make(chan string),
+	}
+}
+
+func (mp *MusicPlayer) PlaySongs(mp3Files []string) {
+	go mp.listenForCommands()
 
 	for _, file := range mp3Files {
-		fmt.Printf("Now playing: %s\n", filepath.Base(file))
-		fmt.Println("Press 'n' and hit Enter to skip to the next song.")
-
-		f, err := os.Open(file)
-		if err != nil {
-			log.Fatalf("Failed to open file %s: %v", file, err)
-		}
-
-		decoder, err := mp3.NewDecoder(f)
-		if err != nil {
-			log.Fatalf("Failed to create MP3 decoder: %v", err)
-		}
-
-		player := context.NewPlayer()
-		defer player.Close()
-
-		done := make(chan bool)
-		stop := make(chan bool)
-
-		go func() {
-			buf := make([]byte, 4096)
-			for {
-				select {
-				case <-stop:
-					done <- true
-					return
-				default:
-					n, err := decoder.Read(buf)
-					if err == io.EOF {
-						done <- true
-						return
-					}
-					if err != nil {
-						log.Printf("Error reading audio data: %v", err)
-						done <- true
-						return
-					}
-					if n > 0 {
-						if _, err := player.Write(buf[:n]); err != nil {
-							log.Printf("Error playing audio: %v", err)
-							done <- true
-							return
-						}
-					}
-				}
-			}
-		}()
-
-		songFinished := false
-		for !songFinished {
-			select {
-			case <-done:
-				songFinished = true
-			case cmd := <-commandChan:
-				switch cmd {
-				case "n":
-					stop <- true
-					<-done
-					songFinished = true
-				default:
-					fmt.Println("Unknown command. Press 'n' to skip.")
-				}
-			}
-		}
-
-		player.Close()
-		f.Close()
+		mp.playTrack(file)
 	}
 
 	fmt.Println("Playback finished.")
+}
+
+func (mp *MusicPlayer) playTrack(file string) {
+	fmt.Printf("Now playing: %s\n", filepath.Base(file))
+	fmt.Println("Press 'n' and hit Enter to skip to the next song. Press 'p' to pause/resume. Press 's' to stop playback.")
+
+	f, err := os.Open(file)
+	if err != nil {
+		log.Fatalf("Failed to open file %s: %v", file, err)
+	}
+	defer f.Close()
+
+	decoder, err := mp3.NewDecoder(f)
+	if err != nil {
+		log.Fatalf("Failed to create MP3 decoder: %v", err)
+	}
+
+	player := mp.context.NewPlayer()
+	mp.currentPlayer = player
+	mp.currentFile = f
+	mp.done = make(chan bool)
+	mp.stop = make(chan bool)
+	defer player.Close()
+
+	go mp.playAudio(decoder)
+	mp.waitForCommands()
+}
+
+func (mp *MusicPlayer) playAudio(decoder *mp3.Decoder) {
+	buf := make([]byte, 4096)
+	for {
+		select {
+		case <-mp.stop:
+			mp.done <- true
+			return
+		default:
+			mp.mu.Lock()
+			if mp.paused {
+				mp.mu.Unlock()
+				continue
+			}
+			mp.mu.Unlock()
+			n, err := decoder.Read(buf)
+			if err == io.EOF {
+				mp.done <- true
+				return
+			}
+			if err != nil {
+				log.Printf("Error reading audio data: %v", err)
+				mp.done <- true
+				return
+			}
+			if n > 0 {
+				if _, err := mp.currentPlayer.Write(buf[:n]); err != nil {
+					log.Printf("Error playing audio: %v", err)
+					mp.done <- true
+					return
+				}
+			}
+		}
+	}
+}
+
+func (mp *MusicPlayer) listenForCommands() {
+	reader := bufio.NewReader(os.Stdin)
+	for {
+		input, err := reader.ReadString('\n')
+		if err != nil {
+			log.Printf("Error reading input: %v", err)
+			continue
+		}
+		input = strings.TrimSpace(input)
+		mp.commandChan <- input
+	}
+}
+
+func (mp *MusicPlayer) waitForCommands() {
+	songFinished := false
+	for !songFinished {
+		select {
+		case <-mp.done:
+			songFinished = true
+		case cmd := <-mp.commandChan:
+			switch cmd {
+			case "n":
+				mp.NextTrack()
+				songFinished = true
+			case "p":
+				mp.PauseTrack()
+			case "s":
+				mp.Stop()
+				songFinished = true
+			default:
+				fmt.Println("Unknown command. Press 'n' to skip, 'p' to pause/resume, 's' to stop.")
+			}
+		}
+	}
+}
+
+func (mp *MusicPlayer) PauseTrack() {
+	mp.mu.Lock()
+	defer mp.mu.Unlock()
+	mp.paused = !mp.paused
+	if mp.paused {
+		fmt.Println("Playback paused.")
+	} else {
+		fmt.Println("Playback resumed.")
+	}
+}
+
+func (mp *MusicPlayer) NextTrack() {
+	mp.stop <- true
+	<-mp.done
+	fmt.Println("Skipping to next track.")
+}
+
+func (mp *MusicPlayer) Stop() {
+	mp.stop <- true
+	<-mp.done
+	fmt.Println("Playback stopped.")
 }
